@@ -1,4 +1,4 @@
-import { FabricImage, BaseInfo } from './type';
+import { FabricImage, BaseInfo, DataInfoMap } from './type';
 import { TaskScheduler } from './utils';
 import mitt, { Handler } from 'mitt';
 
@@ -147,14 +147,24 @@ export abstract class FrameStream {
   /**
    * 获取当前帧的数据
    */
-  async current() {
+  async current(): Promise<{
+    code: number;
+    message: string;
+    result?: {
+      image: FabricImage;
+      data: BaseInfo[] | undefined;
+    };
+  } | void> {
     if (this._frameContinuer !== undefined) {
       // 如果_frameContinuer不为空，则证明有一个current方法的调用尚未结束，因此退出
       return;
     }
     if (this._progressIndex < 0 || this._progressIndex >= this._maxFrameCount) {
       // 此时认为播放结束
-      return;
+      return {
+        code: 1,
+        message: '播放结束'
+      };
     }
     if (!this._images[this._progressIndex]) {
       // 此时该帧数据还未加载到本地，则要触发pending和resume事件
@@ -178,6 +188,10 @@ export abstract class FrameStream {
 
     this._progressIndex += 1;
 
-    return result;
+    return {
+      code: 0,
+      message: '',
+      result
+    };
   }
 }

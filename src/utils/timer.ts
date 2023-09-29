@@ -8,7 +8,7 @@ export class FrameTimer {
     return this._isRunning;
   }
 
-  constructor(private readonly render: () => void, private readonly intervalDuration: number) {}
+  constructor(private readonly render: () => Promise<void>, private readonly intervalDuration: number) {}
 
   start() {
     this._isRunning = true;
@@ -24,19 +24,21 @@ export class FrameTimer {
     const timespan = ts - this._lastRunTimestamp;
     if (this._lastRunTimestamp === 0 || timespan >= this.intervalDuration) {
       // 执行每帧逻辑
-      try {
-        // 计算fps
-        if (this._lastRunTimestamp > 0) {
-          this.fps = 1000 / timespan;
-        }
-        this.render();
-      } catch (e) {
-        console.warn('帧逻辑执行失败：', e);
-      } finally {
-        this._lastRunTimestamp = ts;
+      // 计算fps
+      if (this._lastRunTimestamp > 0) {
+        this.fps = 1000 / timespan;
       }
+      this.render()
+        .catch((e) => {
+          console.warn('帧逻辑执行失败：', e);
+        })
+        .finally(() => {
+          this._lastRunTimestamp = ts;
+          window.requestAnimationFrame(this.loop.bind(this));
+        });
+    } else {
+      window.requestAnimationFrame(this.loop.bind(this));
     }
-    window.requestAnimationFrame(this.loop.bind(this));
   }
 
   stop() {

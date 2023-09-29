@@ -28,8 +28,8 @@ export class Player {
 
   constructor(containerElementId: string, stream: FrameStream) {
     this._canvas = new fabric.StaticCanvas(containerElementId, {
-      width: 1920,
-      height: 1080,
+      width: 3840,
+      height: 2160,
       renderOnAddRemove: false
     });
     this._stream = stream;
@@ -37,26 +37,28 @@ export class Player {
 
   async start() {
     if (!this._timer) {
-      this._timer = new FrameTimer(() => {
-        this._stream
-          .current()
-          .then((frameData) => {
-            if (!!frameData) {
+      this._timer = new FrameTimer(async () => {
+        try {
+          const frameData = await this._stream.current();
+          if (!!frameData) {
+            if (frameData.code === 0) {
               // 渲染帧数据
-              this.render(frameData);
+              this.render(frameData.result!);
+            } else if (frameData.code === 1) {
+              await this.stop();
             }
-          })
-          .catch(() => {
-            console.warn(`获取当前帧数据失败`);
-          });
+          }
+        } catch {
+          console.warn(`获取当前帧数据失败`);
+        }
       }, 100);
     }
     if (this._timer.isRunning) {
       throw new Error(`开始播放失败：计时器已经在运行`);
     }
-    this._timer.start();
     // 开始缓冲数据
     await this._stream.seek();
+    this._timer.start();
   }
 
   async pause() {
@@ -75,8 +77,6 @@ export class Player {
 
   async stop() {
     await this.pause();
-    // 停止的时候回到起始位置
-    await this._stream.seek();
   }
 
   private render(frameData: { image: FabricImage; data: BaseInfo[] | undefined }) {
