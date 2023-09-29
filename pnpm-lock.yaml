@@ -4,6 +4,9 @@ dependencies:
   fabric:
     specifier: ^5.3.0
     version: 5.3.0
+  mitt:
+    specifier: ^3.0.1
+    version: 3.0.1
 
 devDependencies:
   '@commitlint/cli':
@@ -4443,6 +4446,10 @@ packages:
       yallist: 4.0.0
     dev: false
     optional: true
+
+  /mitt@3.0.1:
+    resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
+    dev: false
 
   /mkdirp@0.5.6:
     resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
