@@ -26,11 +26,30 @@ export abstract class FrameStream {
 
   // 按照时长折算的总帧数
   private readonly _maxFrameCount: number;
+  /**
+   * 按照时长折算的总帧数
+   */
+  get maxFrameCount() {
+    return this._maxFrameCount;
+  }
   // 每一帧的时长
   private _frameDuration: number;
 
   // 当前播放进度的帧索引
   private _progressIndex = 0;
+  /**
+   * 当前数据缓冲进度的帧索引
+   */
+  get bufferProgressIndex() {
+    let idx = this._progressIndex;
+    for (let i = idx; i < this._maxFrameCount; ++i) {
+      idx = i;
+      if (!this._images[i]) {
+        break;
+      }
+    }
+    return idx;
+  }
   /**
    * 当前播放进度的时间戳
    */
@@ -73,11 +92,11 @@ export abstract class FrameStream {
   /**
    * 获取帧图像的方法，由子类实现
    */
-  abstract fetchImage(): Promise<FabricImage>;
+  protected abstract fetchImage(): Promise<FabricImage>;
   /**
    * 获取每一帧数据的方法，由子类实现
    */
-  abstract fetchDataInfos(): Promise<BaseInfo[]>;
+  protected abstract fetchDataInfos(): Promise<BaseInfo[]>;
 
   private getFrameIndexByTimestamp(timestamp: number) {
     const d = timestamp - this.startTimestamp;
@@ -87,7 +106,7 @@ export abstract class FrameStream {
   /**
    * 跳转到数据流的指定时间戳位置
    */
-  async seek(timestamp: number) {
+  async seek(timestamp: number = this.startTimestamp) {
     const index = this.getFrameIndexByTimestamp(timestamp);
     if (index < 0 || index >= this._maxFrameCount) {
       throw new Error(`获取帧数据失败：时间戳超出了数据流的时间范围`);

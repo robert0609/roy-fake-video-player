@@ -2,18 +2,19 @@ import { fabric } from 'fabric';
 
 type PointInfo = { x: number; y: number };
 
-export interface BaseInfo {
+export interface BaseInfo<T extends ShapeType = ShapeType> {
   id: string;
+  type: T;
   fillColor: string;
   strokeColor: string;
   strokeWidth: number;
 }
 
-export interface PolylineInfo extends BaseInfo {
+export interface PolylineInfo extends BaseInfo<'polyline'> {
   points: PointInfo[];
 }
 
-export interface RectangleInfo extends BaseInfo {
+export interface RectangleInfo extends BaseInfo<'rectangle'> {
   left: number;
   top: number;
   width: number;
@@ -21,16 +22,16 @@ export interface RectangleInfo extends BaseInfo {
   angle: number;
 }
 
-export interface PolygonInfo extends BaseInfo {
+export interface PolygonInfo extends BaseInfo<'polygon'> {
   points: PointInfo[];
 }
 
-export interface CircleInfo extends BaseInfo {
+export interface CircleInfo extends BaseInfo<'circle'> {
   origin: PointInfo;
   radius: number;
 }
 
-export interface EllipseInfo extends BaseInfo {
+export interface EllipseInfo extends BaseInfo<'ellipse'> {
   left: number;
   top: number;
   width: number;
@@ -38,7 +39,7 @@ export interface EllipseInfo extends BaseInfo {
   angle: number;
 }
 
-interface DataInfoMap {
+export interface DataInfoMap {
   ['polyline']: PolylineInfo;
   ['polygon']: PolygonInfo;
   ['rectangle']: RectangleInfo;

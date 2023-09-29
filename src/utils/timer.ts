@@ -4,10 +4,11 @@ export class FrameTimer {
 
   fps?: number;
 
-  constructor(
-    private readonly render: () => void,
-    private readonly intervalDuration: number
-  ) {}
+  get isRunning() {
+    return this._isRunning;
+  }
+
+  constructor(private readonly render: () => void, private readonly intervalDuration: number) {}
 
   start() {
     this._isRunning = true;

@@ -1,134 +1,171 @@
 import { fabric } from 'fabric';
 import { FrameStream } from './stream';
 import { FrameTimer } from './utils';
-import { polylines, rectangles } from '../mock/labelData';
-import img1 from '../mock/1.jpg';
-import img2 from '../mock/2.jpg';
+import { FabricImage, BaseInfo, PolylineInfo, PolygonInfo, RectangleInfo, CircleInfo, EllipseInfo } from './type';
 
 export class Player {
   private _canvas: fabric.StaticCanvas;
-  private _images: fabric.Image[] = [];
+  private _stream: FrameStream;
+  private _timer?: FrameTimer;
 
-  private _stream?: FrameStream;
-  private get stream() {
-    if (this._stream === undefined) {
-      throw new Error(`播放失败：未绑定数据流`);
+  /**
+   * 是否在播放中
+   */
+  get isPlaying() {
+    if (!this._timer) {
+      return false;
+    } else {
+      return this._timer.isRunning;
     }
-    return this._stream;
   }
 
   /**
-   * 当前播放的时间进度值
+   * 当前播放进度的时间戳
    */
-  progressTimestamp?: number;
-
-  get isPlaying() {
-    return false;
+  get progress() {
+    return this._stream.progressTimestamp;
   }
 
-  private _timer?: FrameTimer;
-
-  constructor(containerElementId: string) {
+  constructor(containerElementId: string, stream: FrameStream) {
     this._canvas = new fabric.StaticCanvas(containerElementId, {
       width: 1920,
       height: 1080,
       renderOnAddRemove: false
     });
-  }
-
-  loadStream(stream: FrameStream) {
     this._stream = stream;
   }
 
-  unloadStream() {
-    this._stream = undefined;
-  }
-
-  start() {
-    this._timer = new FrameTimer(() => {}, 100);
+  async start() {
+    if (!this._timer) {
+      this._timer = new FrameTimer(() => {
+        this._stream
+          .current()
+          .then((frameData) => {
+            if (!!frameData) {
+              // 渲染帧数据
+              this.render(frameData);
+            }
+          })
+          .catch(() => {
+            console.warn(`获取当前帧数据失败`);
+          });
+      }, 100);
+    }
+    if (this._timer.isRunning) {
+      throw new Error(`开始播放失败：计时器已经在运行`);
+    }
     this._timer.start();
+    // 开始缓冲数据
+    await this._stream.seek();
   }
 
-  pause() {}
+  async pause() {
+    if (!this._timer) {
+      throw new Error(`停止播放失败：未初始化计时器`);
+    }
+    this._timer.stop();
+  }
 
-  seek(timestamp: number) {}
+  async seek(timestamp: number) {
+    if (!this._timer) {
+      throw new Error(`跳转播放失败：未初始化计时器`);
+    }
+    await this._stream.seek(timestamp);
+  }
 
-  stop() {}
+  async stop() {
+    await this.pause();
+    // 停止的时候回到起始位置
+    await this._stream.seek();
+  }
 
-  render(frameIndex: number) {
+  private render(frameData: { image: FabricImage; data: BaseInfo[] | undefined }) {
     this._canvas.clear();
-    this._canvas.add(this._images[frameIndex % 2]);
+    this._canvas.add(frameData.image.image);
 
-    const rects = rectangles[frameIndex];
-    this._canvas.add(
-      ...rects.map(
-        (rect) =>
-          new fabric.Rect({
-            left: rect.position.x,
-            top: rect.position.y,
-            width: rect.dimension.width,
-            height: rect.dimension.height,
-            fill: 'transparent',
-            stroke: 'green',
-            strokeWidth: 2,
-            objectCaching: false
-          })
-      )
-    );
-    const lines = polylines[frameIndex];
-    this._canvas.add(
-      ...lines.map(
-        (line) =>
-          new fabric.Polyline(line.points, {
-            fill: 'transparent',
-            stroke: 'yellow',
-            strokeWidth: 2,
-            objectCaching: false
-          })
-      )
-    );
-
+    if (!!frameData.data) {
+      for (const shape of frameData.data) {
+        switch (shape.type) {
+          case 'polyline': {
+            const geo = shape as PolylineInfo;
+            this._canvas.add(
+              new fabric.Polyline(geo.points, {
+                fill: geo.fillColor,
+                stroke: geo.strokeColor,
+                strokeWidth: geo.strokeWidth,
+                objectCaching: false
+              })
+            );
+            break;
+          }
+          case 'polygon': {
+            const geo = shape as PolygonInfo;
+            this._canvas.add(
+              new fabric.Polygon(geo.points, {
+                fill: geo.fillColor,
+                stroke: geo.strokeColor,
+                strokeWidth: geo.strokeWidth,
+                objectCaching: false
+              })
+            );
+            break;
+          }
+          case 'rectangle': {
+            const geo = shape as RectangleInfo;
+            this._canvas.add(
+              new fabric.Rect({
+                fill: geo.fillColor,
+                stroke: geo.strokeColor,
+                strokeWidth: geo.strokeWidth,
+                objectCaching: false,
+                left: geo.left,
+                top: geo.top,
+                width: geo.width,
+                height: geo.height,
+                angle: geo.angle
+              })
+            );
+            break;
+          }
+          case 'circle': {
+            const geo = shape as CircleInfo;
+            this._canvas.add(
+              new fabric.Circle({
+                fill: geo.fillColor,
+                stroke: geo.strokeColor,
+                strokeWidth: geo.strokeWidth,
+                objectCaching: false,
+                left: geo.origin.x,
+                top: geo.origin.y,
+                originX: 'center',
+                originY: 'center',
+                radius: geo.radius
+              })
+            );
+            break;
+          }
+          case 'ellipse': {
+            const geo = shape as EllipseInfo;
+            this._canvas.add(
+              new fabric.Ellipse({
+                fill: geo.fillColor,
+                stroke: geo.strokeColor,
+                strokeWidth: geo.strokeWidth,
+                objectCaching: false,
+                left: geo.left,
+                top: geo.top,
+                width: geo.width,
+                height: geo.height,
+                rx: geo.width / 2,
+                ry: geo.height / 2,
+                angle: geo.angle
+              })
+            );
+            break;
+          }
+        }
+      }
+    }
     this._canvas.requestRenderAll();
-    // rectangles.forEach(rect => {
-    //   this._canvas.add(new fabric.Rect({
-    //     left: rect.position.x,
-    //     top: rect.position.y,
-    //     width: rect.dimension.width,
-    //     height: rect.dimension.height,
-    //     fill: 'white',
-    //     stroke: 'green',
-    //     strokeWidth: 2
-    //   }))
-    // })
-    // polylines.forEach(line => {
-    //   this._canvas.add(new fabric.Polyline(line.points, {
-    //     fill: 'white',
-    //     stroke: 'yellow',
-    //     strokeWidth: 2
-    //   }));
-    // });
   }
-
-  async loadImages() {
-    this._images = (await Promise.all([loadImage(img1), loadImage(img2)])).map(
-      (img) =>
-        new fabric.Image(img, {
-          objectCaching: false
-        })
-    );
-  }
-}
-
-export async function loadImage(url: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const loadImg = document.createElement('img');
-    loadImg.setAttribute('crossOrigin', 'Anonymous');
-    loadImg.src = `${url}`;
-    loadImg.onload = () => {
-      resolve(loadImg);
-    };
-    loadImg.onerror = (evt) => {
-      reject(evt);
-    };
-  });
 }
