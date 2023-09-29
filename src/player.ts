@@ -1,4 +1,6 @@
 import { fabric } from 'fabric';
+import { FrameStream } from './stream';
+import { FrameTimer } from './utils';
 import { polylines, rectangles } from '../mock/labelData';
 import img1 from '../mock/1.jpg';
 import img2 from '../mock/2.jpg';
@@ -7,6 +9,25 @@ export class Player {
   private _canvas: fabric.StaticCanvas;
   private _images: fabric.Image[] = [];
 
+  private _stream?: FrameStream;
+  private get stream() {
+    if (this._stream === undefined) {
+      throw new Error(`播放失败：未绑定数据流`);
+    }
+    return this._stream;
+  }
+
+  /**
+   * 当前播放的时间进度值
+   */
+  progressTimestamp?: number;
+
+  get isPlaying() {
+    return false;
+  }
+
+  private _timer?: FrameTimer;
+
   constructor(containerElementId: string) {
     this._canvas = new fabric.StaticCanvas(containerElementId, {
       width: 1920,
@@ -14,6 +35,25 @@ export class Player {
       renderOnAddRemove: false
     });
   }
+
+  loadStream(stream: FrameStream) {
+    this._stream = stream;
+  }
+
+  unloadStream() {
+    this._stream = undefined;
+  }
+
+  start() {
+    this._timer = new FrameTimer(() => {}, 100);
+    this._timer.start();
+  }
+
+  pause() {}
+
+  seek(timestamp: number) {}
+
+  stop() {}
 
   render(frameIndex: number) {
     this._canvas.clear();

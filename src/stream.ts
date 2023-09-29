@@ -13,6 +13,8 @@ export abstract class FrameStream {
 
   private _frameDuration: number;
 
+  // 当前播放位置
+  private _currentIndex = 0;
   // 帧数据的最大缓存数量，超过这个数量就会按照存储时间的顺序，先存在的数据会被清除
   private _maxCacheFrameCount: number;
   // 已经缓存住了的帧数据的帧索引数据
@@ -23,10 +25,7 @@ export abstract class FrameStream {
   constructor(
     private readonly startTimestamp: number,
     private readonly endTimestamp: number,
-    {
-      frameDuration = 100,
-      maxCacheFrameCount = 200
-    }: { frameDuration?: number; maxCacheFrameCount?: number } = {}
+    { frameDuration = 100, maxCacheFrameCount = 200 }: { frameDuration?: number; maxCacheFrameCount?: number } = {}
   ) {
     this._frameDuration = frameDuration;
     this._maxCacheFrameCount = maxCacheFrameCount;
@@ -47,31 +46,42 @@ export abstract class FrameStream {
     await this._scheduler.clear();
 
     const index = this.getFrameIndexByTimestamp(timestamp);
-    if (index < 0 || index > this._maxFrameCount) {
+    if (index < 0 || index >= this._maxFrameCount) {
       throw new Error(`获取帧数据失败：时间戳超出了数据流的时间范围`);
     }
+    this._currentIndex = index;
     // 从获取的索引位置开始获取后续帧数据
     for (let i = index; i < this._maxFrameCount; ++i) {
       if (this._images[i] === undefined || this._dataInfos[i] === undefined) {
         // 发起加载任务
         this._scheduler.push(() =>
-          Promise.all([this.fetchImage(), this.fetchDataInfos()]).then(
-            ([img, dataInfos]) => {
-              this._images[i] = img;
-              this._dataInfos[i] = dataInfos;
-              // 记录下已经获取到数据的帧索引
-              this._alreadyCacheFrames.push(i);
-              while (
-                this._alreadyCacheFrames.length > this._maxCacheFrameCount
-              ) {
-                const recycleIndex = this._alreadyCacheFrames.shift()!;
-                this._images[recycleIndex] = undefined;
-                this._dataInfos[recycleIndex] = undefined;
-              }
+          Promise.all([this.fetchImage(), this.fetchDataInfos()]).then(([img, dataInfos]) => {
+            this._images[i] = img;
+            this._dataInfos[i] = dataInfos;
+            // 记录下已经获取到数据的帧索引
+            this._alreadyCacheFrames.push(i);
+            while (this._alreadyCacheFrames.length > this._maxCacheFrameCount) {
+              const recycleIndex = this._alreadyCacheFrames.shift()!;
+              this._images[recycleIndex] = undefined;
+              this._dataInfos[recycleIndex] = undefined;
             }
-          )
+          })
         );
       }
     }
+  }
+
+  current() {
+    if (this._currentIndex < 0 || this._currentIndex >= this._maxFrameCount || !this._images[this._currentIndex]) {
+      return;
+    }
+    const result = {
+      image: this._images[this._currentIndex]!,
+      data: this._dataInfos[this._currentIndex]
+    };
+
+    this._currentIndex += 1;
+
+    return result;
   }
 }
