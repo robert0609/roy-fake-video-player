@@ -1,6 +1,6 @@
 import { FabricImage, BaseInfo } from './type';
 import { TaskScheduler } from './utils';
-import mitt, { type Handler } from 'mitt';
+import mitt, { Handler } from 'mitt';
 
 export type FrameStreamEvents = {
   ['onPending']: undefined;
