@@ -6,6 +6,7 @@ export type FrameStreamEvents = {
   ['onPending']: undefined;
   ['onResume']: undefined;
   ['onCancel']: undefined;
+  ['onFullLoad']: undefined;
 };
 
 export type FrameStreamEventsNames = keyof FrameStreamEvents;
@@ -132,6 +133,10 @@ export abstract class FrameStream {
             // 如果有当前帧索引的等待获取数据的请求，则这里触发一下
             if (this._progressIndex === i && this._frameContinuer !== undefined) {
               this._frameContinuer.resolve();
+            }
+            // 如果加载的帧数据的数量已经等于最大帧数量了，则触发事件
+            if (this._alreadyCacheFrames.length === this._maxFrameCount) {
+              this._eventBus.emit('onFullLoad');
             }
             while (this._alreadyCacheFrames.length > this._maxCacheFrameCount) {
               const recycleIndex = this._alreadyCacheFrames.shift()!;

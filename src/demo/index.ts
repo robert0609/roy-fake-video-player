@@ -1,5 +1,6 @@
 import { fabric } from 'fabric';
 import { Player, FrameStream, BaseInfo, DataInfoMap, FabricImage } from '../index';
+import { polylines, rectangles } from '../../mock/labelData';
 
 const imageNames = [
   '1683804919-885000_front-wide_.jpg',
@@ -44,7 +45,7 @@ class DemoStream extends FrameStream {
     };
   }
   protected async fetchDataInfos(index: number): Promise<BaseInfo<keyof DataInfoMap>[]> {
-    return [];
+    return [...polylines[index], ...rectangles[index]];
   }
 }
 
@@ -53,4 +54,7 @@ const endTime = new Date(startTime.getTime() + 10 * 1000);
 const demoStream = new DemoStream(startTime.getTime(), endTime.getTime());
 const demoPlayer = new Player('playerContainer', demoStream);
 
-demoPlayer.start();
+demoStream.on('onFullLoad', () => {
+  demoPlayer.start();
+});
+demoStream.seek();

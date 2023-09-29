@@ -1,3 +1,5 @@
+import { PolylineInfo, RectangleInfo } from '../src';
+
 const polylineDemo = {
   id: 0,
   points: [
@@ -36,12 +38,16 @@ export const polylines = offsets.map((o, i) => {
   return counts.map(r => {
     const pp = r * 2.8
     return {
-      id: i,
+      id: i.toString(),
+      type: 'polyline',
+      fillColor: 'transparent',
+      strokeColor: 'green',
+      strokeWidth: 3,
       points: polylineDemo.points.map(p => ({
         x: p.x + on,
         y: p.y + pp
       }))
-    }
+    } as PolylineInfo
   })
 });
 
@@ -50,12 +56,16 @@ export const rectangles = offsets.map((o, i) => {
   return counts.map(r => {
     const pp = r * 2.8
     return {
-      id: i,
-      position: {
-        x: rectangleDemo.position.x + on,
-        y: rectangleDemo.position.y + pp
-      },
-      dimension: rectangleDemo.dimension
-    }
+      id: i.toString(),
+      type: 'rectangle',
+      fillColor: 'transparent',
+      strokeColor: 'red',
+      strokeWidth: 2,
+      left: rectangleDemo.position.x + on,
+      top: rectangleDemo.position.y + pp,
+      width: rectangleDemo.dimension.width,
+      height: rectangleDemo.dimension.height,
+      angle: 0
+    } as RectangleInfo
   })
 })
