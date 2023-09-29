@@ -166,6 +166,6 @@ export class Player {
         }
       }
     }
-    this._canvas.requestRenderAll();
+    this._canvas.renderAll();
   }
 }

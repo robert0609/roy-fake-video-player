@@ -92,11 +92,11 @@ export abstract class FrameStream {
   /**
    * 获取帧图像的方法，由子类实现
    */
-  protected abstract fetchImage(): Promise<FabricImage>;
+  protected abstract fetchImage(index: number): Promise<FabricImage>;
   /**
    * 获取每一帧数据的方法，由子类实现
    */
-  protected abstract fetchDataInfos(): Promise<BaseInfo[]>;
+  protected abstract fetchDataInfos(index: number): Promise<BaseInfo[]>;
 
   private getFrameIndexByTimestamp(timestamp: number) {
     const d = timestamp - this.startTimestamp;
@@ -124,7 +124,7 @@ export abstract class FrameStream {
       if (this._images[i] === undefined || this._dataInfos[i] === undefined) {
         // 发起加载任务
         this._scheduler.push(() =>
-          Promise.all([this.fetchImage(), this.fetchDataInfos()]).then(([img, dataInfos]) => {
+          Promise.all([this.fetchImage(i), this.fetchDataInfos(i)]).then(([img, dataInfos]) => {
             this._images[i] = img;
             this._dataInfos[i] = dataInfos;
             // 记录下已经获取到数据的帧索引

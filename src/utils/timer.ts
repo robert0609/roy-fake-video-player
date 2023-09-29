@@ -36,7 +36,7 @@ export class FrameTimer {
         this._lastRunTimestamp = ts;
       }
     }
-    window.requestAnimationFrame(this.loop);
+    window.requestAnimationFrame(this.loop.bind(this));
   }
 
   stop() {

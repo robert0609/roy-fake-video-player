@@ -17,13 +17,11 @@ export class TaskScheduler {
     // 取出下一个可以执行的任务，必须要满足并发执行限制的
     while (this._tasks.length > 0 && this._executingCount < this.limit) {
       this._executingCount += 1;
-      console.log('start a new task. current executing:', this.executingCount);
       const taskFn = this._tasks.shift();
       const p = taskFn!();
       // 在每个任务执行完毕的时候，执行下一个可以执行的任务
       p.then(() => {
         this._executingCount -= 1;
-        console.log('end a task. current executing:', this.executingCount);
         if (this._executingCount === 0) {
           this._onFinish && this._onFinish();
         }
