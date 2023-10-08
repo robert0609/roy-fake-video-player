@@ -62,6 +62,8 @@ export class Player {
           data: dataInfos
         });
         this._isInited = true;
+        // 触发ready事件
+        this._eventBus.emit('ready');
       })
       .catch((e) => {
         console.error('播放器获取首帧数据失败', e);
