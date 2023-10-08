@@ -1,5 +1,5 @@
-import { DefineComponent, VNode, defineComponent, onMounted, ref } from 'vue';
-import { FakeVideoPlayer } from '../index';
+import { VNode, defineComponent, onMounted, ref } from 'vue';
+import { FakeVideoPlayer, PlayMode } from '../index';
 import { fabric } from 'fabric';
 import { Player, FrameStream, BaseInfo, DataInfoMap, FabricImage } from '../index';
 import { polylines, rectangles } from '../../mock/labelData';
@@ -59,18 +59,28 @@ export default defineComponent({
     onMounted(() => {
       const startTime = new Date();
       const endTime = new Date(startTime.getTime() + 10 * 1000);
-      const demoStream = new DemoStream(startTime.getTime(), endTime.getTime());
+      const demoStream = new DemoStream(startTime.getTime(), endTime.getTime(), { maxCacheFrameCount: 10 });
+      demoStream.on('pending', () => {
+        console.log('pending')
+      });
+      demoStream.on('resume', () => {
+        console.log('resume')
+      });
+      demoStream.on('cancel', () => {
+        console.log('cancel')
+      });
       //@ts-ignore
       playerNode.value.loadStream(demoStream);
-
-      demoStream.seek();
     });
 
     return () => (
       <FakeVideoPlayer
         ref={playerNode}
         {...{
-          name: 'demo'
+          name: 'demo',
+          width: 800,
+          height: 600,
+          mode: PlayMode.waitFullLoad
         }}
       ></FakeVideoPlayer>
     );

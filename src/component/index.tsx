@@ -1,6 +1,6 @@
-import { defineComponent, onBeforeUnmount, ref } from 'vue';
+import { defineComponent, onBeforeUnmount, ref, PropType } from 'vue';
 import { FrameStream } from '../stream';
-import { Player } from '../player';
+import { PlayMode, Player } from '../player';
 import FakeProgressBar from './progress';
 
 export const FakeVideoPlayer = defineComponent({
@@ -17,6 +17,10 @@ export const FakeVideoPlayer = defineComponent({
     height: {
       type: Number,
       default: 600
+    },
+    mode: {
+      type: Number as PropType<PlayMode>,
+      default: PlayMode.buffer
     }
   },
   setup(props, { expose }) {
@@ -38,15 +42,24 @@ export const FakeVideoPlayer = defineComponent({
 
       player = new Player(playerDomId, dataStream, {
         width: props.width,
-        height: props.height
+        height: props.height,
+        mode: props.mode
       });
       player.on('progress', ({ timestamp }) => {
         progress.value = timestamp;
       });
-      dataStream.on('fullLoad', () => {
-        disabled.value = false;
-      });
+      if (props.mode === PlayMode.buffer) {
+        player.on('ready', () => {
+          disabled.value = false;
+        });
+      } else {
+        dataStream.on('fullLoad', () => {
+          disabled.value = false;
+        });
+      }
       stream = dataStream;
+      // 开始加载数据流
+      dataStream.seek();
     }
 
     function handleStart() {

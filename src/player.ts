@@ -10,6 +10,11 @@ export type PlayEvents = {
 };
 export type PlayEventsNames = keyof PlayEvents;
 
+export enum PlayMode {
+  waitFullLoad, // 等待全部数据加载完成之后再开始播放
+  buffer // 按照最大缓存帧数边缓冲边播放
+}
+
 export class Player {
   private _eventBus = mitt<PlayEvents>();
 
@@ -44,13 +49,20 @@ export class Player {
     return this._stream.progressTimestamp + this._stream.startTimestamp < this._stream.endTimestamp;
   }
 
-  constructor(containerElementId: string, stream: FrameStream, { width = 800, height = 600, onError }: { width?: number; height?: number; onError?: (e: Error) => void } = {}) {
+  constructor(
+    containerElementId: string,
+    stream: FrameStream,
+    { width = 800, height = 600, mode = PlayMode.buffer, onError }: { width?: number; height?: number; mode?: PlayMode; onError?: (e: Error) => void } = {}
+  ) {
     this._canvas = new fabric.StaticCanvas(containerElementId, {
       width,
       height,
       renderOnAddRemove: false
     });
     this._stream = stream;
+    if (mode === PlayMode.waitFullLoad) {
+      this._stream.setMaxCacheFrameCount(this._stream.maxFrameCount);
+    }
     stream
       .getCurrentFrame()
       .then(([firstFrame, dataInfos]) => {
