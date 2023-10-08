@@ -87,7 +87,9 @@ export default defineComponent({
               cursor: 'pointer'
             }}
           >
-            play
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M8 5.14v14l11-7l-11-7Z" />
+            </svg>
           </span>
         ) : (
           <span
@@ -96,7 +98,9 @@ export default defineComponent({
               cursor: 'pointer'
             }}
           >
-            stop
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M14 19h4V5h-4M6 19h4V5H6v14Z" />
+            </svg>
           </span>
         )}
         <div
