@@ -34,6 +34,8 @@ export const FakeVideoPlayer = defineComponent({
     const progress = ref(0);
     const disabled = ref(true);
 
+    const loading = ref(false);
+
     let needToRecoverPlay = false;
 
     function loadStream(dataStream: FrameStream) {
@@ -58,6 +60,17 @@ export const FakeVideoPlayer = defineComponent({
         });
       }
       stream = dataStream;
+
+      dataStream.on('pending', () => {
+        loading.value = true;
+      });
+      dataStream.on('resume', () => {
+        loading.value = false;
+      });
+      dataStream.on('cancel', () => {
+        loading.value = false;
+      });
+
       // 开始加载数据流
       dataStream.seek();
     }
@@ -110,6 +123,8 @@ export const FakeVideoPlayer = defineComponent({
       frameDuration.value = 0;
       progress.value = 0;
       disabled.value = true;
+
+      loading.value = false;
     });
 
     expose({
@@ -119,10 +134,94 @@ export const FakeVideoPlayer = defineComponent({
     return () => (
       <div
         style={{
-          width: `${props.width}px`
+          width: `${props.width}px`,
+          position: 'relative'
         }}
       >
         <canvas id={playerDomId}></canvas>
+        {loading.value ? (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              position: 'absolute',
+              top: '0px',
+              width: '100%',
+              height: '100%'
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              style="margin: auto; background: none; display: block; shape-rendering: auto;"
+              width="200px"
+              height="200px"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="xMidYMid"
+            >
+              <g transform="rotate(0 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.9166666666666666s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+              <g transform="rotate(30 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.8333333333333334s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+              <g transform="rotate(60 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.75s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+              <g transform="rotate(90 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.6666666666666666s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+              <g transform="rotate(120 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.5833333333333334s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+              <g transform="rotate(150 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.5s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+              <g transform="rotate(180 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.4166666666666667s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+              <g transform="rotate(210 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.3333333333333333s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+              <g transform="rotate(240 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.25s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+              <g transform="rotate(270 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.16666666666666666s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+              <g transform="rotate(300 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.08333333333333333s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+              <g transform="rotate(330 50 50)">
+                <rect x="47" y="24" rx="3" ry="6" width="6" height="12" fill="#413b3c">
+                  <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="0s" repeatCount="indefinite"></animate>
+                </rect>
+              </g>
+            </svg>
+          </div>
+        ) : undefined}
         <FakeProgressBar
           {...{
             progress: progress.value,

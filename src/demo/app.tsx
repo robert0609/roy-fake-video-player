@@ -60,15 +60,6 @@ export default defineComponent({
       const startTime = new Date();
       const endTime = new Date(startTime.getTime() + 10 * 1000);
       const demoStream = new DemoStream(startTime.getTime(), endTime.getTime(), { maxCacheFrameCount: 10 });
-      demoStream.on('pending', () => {
-        console.log('pending')
-      });
-      demoStream.on('resume', () => {
-        console.log('resume')
-      });
-      demoStream.on('cancel', () => {
-        console.log('cancel')
-      });
       //@ts-ignore
       playerNode.value.loadStream(demoStream);
     });
