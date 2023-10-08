@@ -2,12 +2,12 @@
   "extends": [
     "stylelint-config-recommended",
     "stylelint-config-standard",
-    "stylelint-config-recommended-scss",
+    "stylelint-config-recommended-scss"
   ],
   "plugins": [
     "stylelint-scss"
   ],
   "ignoreFiles": [
-    "src/assets/css/tailwind.css"
+    "src/demo/tailwind.css"
   ]
 }

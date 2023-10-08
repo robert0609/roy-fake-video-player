@@ -2,11 +2,22 @@ import { fabric } from 'fabric';
 import { FrameStream } from './stream';
 import { FrameTimer } from './utils';
 import { FabricImage, BaseInfo, PolylineInfo, PolygonInfo, RectangleInfo, CircleInfo, EllipseInfo } from './type';
+import mitt, { Handler } from 'mitt';
+
+export type PlayEvents = {
+  ['ready']: undefined;
+  ['progress']: { timestamp: number };
+};
+export type PlayEventsNames = keyof PlayEvents;
 
 export class Player {
+  private _eventBus = mitt<PlayEvents>();
+
   private _canvas: fabric.StaticCanvas;
   private _stream: FrameStream;
   private _timer?: FrameTimer;
+
+  private _isInited = false;
 
   /**
    * 是否在播放中
@@ -26,16 +37,45 @@ export class Player {
     return this._stream.progressTimestamp;
   }
 
-  constructor(containerElementId: string, stream: FrameStream) {
+  constructor(containerElementId: string, stream: FrameStream, { width = 800, height = 600, onError }: { width?: number; height?: number; onError?: (e: Error) => void } = {}) {
     this._canvas = new fabric.StaticCanvas(containerElementId, {
-      width: 3840,
-      height: 2160,
+      width,
+      height,
       renderOnAddRemove: false
     });
     this._stream = stream;
+    stream
+      .getFirstFrame()
+      .then((firstFrame) => {
+        // 根据首帧数据调整播放器尺寸
+        this.fitDimension(firstFrame.image.width!, firstFrame.image.height!);
+        // 渲染首帧作为封面
+        this.render({
+          image: firstFrame,
+          data: []
+        });
+        this._isInited = true;
+      })
+      .catch((e) => {
+        console.error('播放器获取首帧数据失败', e);
+        if (!!onError) {
+          onError(new Error('播放器获取首帧数据失败'));
+        }
+      });
+  }
+
+  on<T extends PlayEventsNames = PlayEventsNames>(eventName: T, handler: Handler<PlayEvents[T]>) {
+    this._eventBus.on(eventName, handler);
+  }
+
+  off<T extends PlayEventsNames = PlayEventsNames>(eventName: T, handler: Handler<PlayEvents[T]>) {
+    this._eventBus.off(eventName, handler);
   }
 
   async start() {
+    if (this._isInited !== true) {
+      throw new Error(`开始播放失败：播放器尚未初始化`);
+    }
     if (!this._timer) {
       this._timer = new FrameTimer(async () => {
         try {
@@ -44,6 +84,8 @@ export class Player {
             if (frameData.code === 0) {
               // 渲染帧数据
               this.render(frameData.result!);
+              // 触发进度事件
+              this._eventBus.emit('progress', { timestamp: this.progress });
             } else if (frameData.code === 1) {
               await this.stop();
             }
@@ -62,6 +104,9 @@ export class Player {
   }
 
   async pause() {
+    if (this._isInited !== true) {
+      throw new Error(`停止播放失败：播放器尚未初始化`);
+    }
     if (!this._timer) {
       throw new Error(`停止播放失败：未初始化计时器`);
     }
@@ -69,6 +114,9 @@ export class Player {
   }
 
   async seek(timestamp: number) {
+    if (this._isInited !== true) {
+      throw new Error(`跳转播放失败：播放器尚未初始化`);
+    }
     if (!this._timer) {
       throw new Error(`跳转播放失败：未初始化计时器`);
     }
@@ -167,5 +215,18 @@ export class Player {
       }
     }
     this._canvas.renderAll();
+  }
+
+  private fitDimension(width: number, height: number) {
+    // 先调整宽高比
+    const calcHeight = (height / width) * this._canvas.getWidth();
+    this._canvas.setHeight(calcHeight);
+    // 缩放
+    //@ts-ignore
+    const scale: number = fabric.util.findScaleToFit({ width, height }, { width: this._canvas.getWidth(), height: this._canvas.getHeight() });
+    // @ts-ignore
+    const transformMatrix: number[] = fabric.util.calcDimensionsMatrix({ scaleX: scale, scaleY: scale });
+
+    this._canvas.setViewportTransform(transformMatrix);
   }
 }

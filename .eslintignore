@@ -1,0 +1,5 @@
+src/demo/**/*.ts
+src/demo/**/*.d.ts
+src/demo/**/*.js
+src/demo/**/*.tsx
+src/demo/**/*.vue

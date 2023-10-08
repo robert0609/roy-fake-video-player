@@ -3,10 +3,10 @@ import { TaskScheduler } from './utils';
 import mitt, { Handler } from 'mitt';
 
 export type FrameStreamEvents = {
-  ['onPending']: undefined;
-  ['onResume']: undefined;
-  ['onCancel']: undefined;
-  ['onFullLoad']: undefined;
+  ['pending']: undefined;
+  ['resume']: undefined;
+  ['cancel']: undefined;
+  ['fullLoad']: undefined;
 };
 
 export type FrameStreamEventsNames = keyof FrameStreamEvents;
@@ -21,9 +21,11 @@ export abstract class FrameStream {
   private _dataInfos: (BaseInfo[] | undefined)[] = [];
 
   /**
-   * 总时长
+   * 总时长，单位：毫秒
    */
-  readonly totalDuration: number;
+  get totalDuration() {
+    return this._maxFrameCount * this._frameDuration;
+  }
 
   // 按照时长折算的总帧数
   private readonly _maxFrameCount: number;
@@ -76,8 +78,8 @@ export abstract class FrameStream {
   ) {
     this._frameDuration = frameDuration;
 
-    this.totalDuration = endTimestamp - startTimestamp;
-    this._maxFrameCount = Math.ceil(this.totalDuration / this._frameDuration);
+    const totalDuration = endTimestamp - startTimestamp;
+    this._maxFrameCount = Math.ceil(totalDuration / this._frameDuration);
 
     this._maxCacheFrameCount = maxCacheFrameCount === undefined ? this._maxFrameCount : maxCacheFrameCount;
   }
@@ -136,7 +138,7 @@ export abstract class FrameStream {
             }
             // 如果加载的帧数据的数量已经等于最大帧数量了，则触发事件
             if (this._alreadyCacheFrames.length === this._maxFrameCount) {
-              this._eventBus.emit('onFullLoad');
+              this._eventBus.emit('fullLoad');
             }
             while (this._alreadyCacheFrames.length > this._maxCacheFrameCount) {
               const recycleIndex = this._alreadyCacheFrames.shift()!;
@@ -147,6 +149,14 @@ export abstract class FrameStream {
         );
       }
     }
+  }
+
+  /**
+   * 获取首帧数据，用来初始化播放器的封面等
+   */
+  async getFirstFrame(): Promise<FabricImage> {
+    const imageInfo = await this.fetchImage(0);
+    return imageInfo;
   }
 
   /**
@@ -174,13 +184,13 @@ export abstract class FrameStream {
     if (!this._images[this._progressIndex]) {
       // 此时该帧数据还未加载到本地，则要触发pending和resume事件
       try {
-        this._eventBus.emit('onPending');
+        this._eventBus.emit('pending');
         await new Promise<void>((resolve, reject) => {
           this._frameContinuer = { resolve, reject };
         });
-        this._eventBus.emit('onResume');
+        this._eventBus.emit('resume');
       } catch {
-        this._eventBus.emit('onCancel');
+        this._eventBus.emit('cancel');
         return;
       } finally {
         this._frameContinuer = undefined;
