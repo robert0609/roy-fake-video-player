@@ -30,6 +30,8 @@ export const FakeVideoPlayer = defineComponent({
     const progress = ref(0);
     const disabled = ref(true);
 
+    let needToRecoverPlay = false;
+
     function loadStream(dataStream: FrameStream) {
       maxDuration.value = dataStream.totalDuration;
       frameDuration.value = dataStream.frameDuration;
@@ -57,11 +59,29 @@ export const FakeVideoPlayer = defineComponent({
         console.error(e);
       });
     }
-    function handleSeek(e: { progress: number }) {
-      if (!player || !stream) {
-        throw new Error(`播放器未初始化，不能跳转播放`);
-      }
-      player.seek(stream.startTimestamp + e.progress).catch((e) => {
+    function handleSeekStart() {
+      (async () => {
+        if (player?.isPlaying === true) {
+          await player?.pause();
+          needToRecoverPlay = true;
+        }
+      })().catch((e) => {
+        console.error(e);
+      });
+    }
+    function handleSeekEnd(e: { progress: number }) {
+      (async () => {
+        if (!player || !stream) {
+          throw new Error(`播放器未初始化，不能跳转播放`);
+        }
+        await player.seek(stream.startTimestamp + e.progress);
+        if (needToRecoverPlay) {
+          if (player.canContinuePlay) {
+            await player?.start();
+          }
+          needToRecoverPlay = false;
+        }
+      })().catch((e) => {
         console.error(e);
       });
     }
@@ -97,7 +117,8 @@ export const FakeVideoPlayer = defineComponent({
             step: frameDuration.value,
             onStart: handleStart,
             onStop: handleStop,
-            onSeek: handleSeek,
+            onSeekStart: handleSeekStart,
+            onSeekEnd: handleSeekEnd,
             disabled: disabled.value
           }}
         ></FakeProgressBar>

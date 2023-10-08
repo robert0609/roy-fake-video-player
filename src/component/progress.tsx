@@ -29,6 +29,7 @@ export default defineComponent({
   },
   setup(props, { emit }) {
     const isPlaying = ref(false);
+    let isTriggeredSeekStart = false;
 
     const ts = computed(() => {
       const minutes = Math.floor(props.progress / 60000);
@@ -63,8 +64,12 @@ export default defineComponent({
     );
 
     const handleInput = debounce((e: Event) => {
+      if (!isTriggeredSeekStart) {
+        return;
+      }
       const newProgress = (e.target as HTMLInputElement).value;
-      emit('seek', { progress: Number(newProgress) });
+      emit('seekEnd', { progress: Number(newProgress) });
+      isTriggeredSeekStart = false;
     }, 100);
 
     return () => (
@@ -110,7 +115,13 @@ export default defineComponent({
             }}
             {...{
               value: props.progress,
-              ['onInput']: handleInput,
+              ['onInput']: (e: Event) => {
+                if (!isTriggeredSeekStart) {
+                  isTriggeredSeekStart = true;
+                  emit('seekStart');
+                }
+                handleInput(e);
+              },
               min: props.min,
               max: props.max,
               step: props.step,
