@@ -1,4 +1,5 @@
-import { computed, defineComponent, onBeforeUnmount, ref } from 'vue';
+import { computed, defineComponent, ref, watch } from 'vue';
+import { debounce } from 'lodash-es';
 
 export default defineComponent({
   name: 'FakeProgressBar',
@@ -17,6 +18,10 @@ export default defineComponent({
       type: Number,
       required: true
     },
+    step: {
+      type: Number,
+      required: true
+    },
     disabled: {
       type: Boolean,
       default: false
@@ -32,19 +37,35 @@ export default defineComponent({
     });
 
     function start() {
-      if (props.disabled) {
+      if (props.disabled || isPlaying.value) {
         return;
       }
       isPlaying.value = true;
       emit('start');
     }
     function stop() {
-      if (props.disabled) {
+      if (props.disabled || !isPlaying.value) {
         return;
       }
       isPlaying.value = false;
       emit('stop');
     }
+
+    watch(
+      () => props.progress,
+      () => {
+        // 监听进度变化，如果到头了，自动将正在播放的状态置为停止播放
+        if (props.progress >= props.max && isPlaying.value) {
+          isPlaying.value = false;
+          emit('stop');
+        }
+      }
+    );
+
+    const handleInput = debounce((e: Event) => {
+      const newProgress = (e.target as HTMLInputElement).value;
+      emit('seek', { progress: Number(newProgress) });
+    }, 100);
 
     return () => (
       <div
@@ -89,9 +110,10 @@ export default defineComponent({
             }}
             {...{
               value: props.progress,
+              ['onInput']: handleInput,
               min: props.min,
               max: props.max,
-              step: 1,
+              step: props.step,
               disabled: props.disabled
             }}
           ></input>

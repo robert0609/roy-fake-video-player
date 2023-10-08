@@ -26,11 +26,14 @@ export const FakeVideoPlayer = defineComponent({
     let player: Player | undefined;
 
     const maxDuration = ref(0);
+    const frameDuration = ref(0);
     const progress = ref(0);
     const disabled = ref(true);
 
     function loadStream(dataStream: FrameStream) {
       maxDuration.value = dataStream.totalDuration;
+      frameDuration.value = dataStream.frameDuration;
+
       player = new Player(playerDomId, dataStream, {
         width: props.width,
         height: props.height
@@ -54,6 +57,14 @@ export const FakeVideoPlayer = defineComponent({
         console.error(e);
       });
     }
+    function handleSeek(e: { progress: number }) {
+      if (!player || !stream) {
+        throw new Error(`播放器未初始化，不能跳转播放`);
+      }
+      player.seek(stream.startTimestamp + e.progress).catch((e) => {
+        console.error(e);
+      });
+    }
 
     onBeforeUnmount(() => {
       if (!!player) {
@@ -63,6 +74,7 @@ export const FakeVideoPlayer = defineComponent({
       stream = undefined;
 
       maxDuration.value = 0;
+      frameDuration.value = 0;
       progress.value = 0;
       disabled.value = true;
     });
@@ -82,8 +94,10 @@ export const FakeVideoPlayer = defineComponent({
           {...{
             progress: progress.value,
             max: maxDuration.value,
+            step: frameDuration.value,
             onStart: handleStart,
             onStop: handleStop,
+            onSeek: handleSeek,
             disabled: disabled.value
           }}
         ></FakeProgressBar>

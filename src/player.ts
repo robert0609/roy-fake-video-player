@@ -37,6 +37,13 @@ export class Player {
     return this._stream.progressTimestamp;
   }
 
+  /**
+   * 判断是否还能继续播放
+   */
+  get canContinuePlay() {
+    return this._stream.progressTimestamp + this._stream.startTimestamp < this._stream.endTimestamp;
+  }
+
   constructor(containerElementId: string, stream: FrameStream, { width = 800, height = 600, onError }: { width?: number; height?: number; onError?: (e: Error) => void } = {}) {
     this._canvas = new fabric.StaticCanvas(containerElementId, {
       width,
@@ -45,14 +52,14 @@ export class Player {
     });
     this._stream = stream;
     stream
-      .getFirstFrame()
-      .then((firstFrame) => {
+      .getCurrentFrame()
+      .then(([firstFrame, dataInfos]) => {
         // 根据首帧数据调整播放器尺寸
         this.fitDimension(firstFrame.image.width!, firstFrame.image.height!);
         // 渲染首帧作为封面
         this.render({
           image: firstFrame,
-          data: []
+          data: dataInfos
         });
         this._isInited = true;
       })
@@ -99,7 +106,9 @@ export class Player {
       throw new Error(`开始播放失败：计时器已经在运行`);
     }
     // 开始缓冲数据
-    await this._stream.seek();
+    if (!this.canContinuePlay) {
+      await this._stream.seek();
+    }
     this._timer.start();
   }
 
@@ -117,10 +126,16 @@ export class Player {
     if (this._isInited !== true) {
       throw new Error(`跳转播放失败：播放器尚未初始化`);
     }
-    if (!this._timer) {
-      throw new Error(`跳转播放失败：未初始化计时器`);
-    }
     await this._stream.seek(timestamp);
+    if (!this.isPlaying) {
+      const [frameImageInfo, dataInfos] = await this._stream.getCurrentFrame();
+      this.render({
+        image: frameImageInfo,
+        data: dataInfos
+      });
+      // 触发进度事件
+      this._eventBus.emit('progress', { timestamp: this.progress });
+    }
   }
 
   async stop() {

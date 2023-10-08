@@ -37,6 +37,9 @@ export abstract class FrameStream {
   }
   // 每一帧的时长
   private _frameDuration: number;
+  get frameDuration() {
+    return this._frameDuration;
+  }
 
   // 当前播放进度的帧索引
   private _progressIndex = 0;
@@ -71,11 +74,7 @@ export abstract class FrameStream {
   // 帧数据获取的中继器，当通过current方法获取当前帧数据的时候，可能当前帧数据尚未加载完成，因此会使用这个变量缓存一下中断器
   private _frameContinuer?: { resolve: () => void; reject: () => void };
 
-  constructor(
-    private readonly startTimestamp: number,
-    private readonly endTimestamp: number,
-    { frameDuration = 100, maxCacheFrameCount }: { frameDuration?: number; maxCacheFrameCount?: number } = {}
-  ) {
+  constructor(readonly startTimestamp: number, readonly endTimestamp: number, { frameDuration = 100, maxCacheFrameCount }: { frameDuration?: number; maxCacheFrameCount?: number } = {}) {
     this._frameDuration = frameDuration;
 
     const totalDuration = endTimestamp - startTimestamp;
@@ -102,6 +101,12 @@ export abstract class FrameStream {
   protected abstract fetchDataInfos(index: number): Promise<BaseInfo[]>;
 
   private getFrameIndexByTimestamp(timestamp: number) {
+    if (timestamp <= this.startTimestamp) {
+      return 0;
+    }
+    if (timestamp >= this.endTimestamp) {
+      return this._maxFrameCount;
+    }
     const d = timestamp - this.startTimestamp;
     return Math.floor(d / this._frameDuration);
   }
@@ -111,7 +116,7 @@ export abstract class FrameStream {
    */
   async seek(timestamp: number = this.startTimestamp) {
     const index = this.getFrameIndexByTimestamp(timestamp);
-    if (index < 0 || index >= this._maxFrameCount) {
+    if (index < 0 || index > this._maxFrameCount) {
       throw new Error(`获取帧数据失败：时间戳超出了数据流的时间范围`);
     }
     // 清除之前的加载任务
@@ -152,11 +157,12 @@ export abstract class FrameStream {
   }
 
   /**
-   * 获取首帧数据，用来初始化播放器的封面等
+   * 获取当前帧的图像数据
    */
-  async getFirstFrame(): Promise<FabricImage> {
-    const imageInfo = await this.fetchImage(0);
-    return imageInfo;
+  async getCurrentFrame(): Promise<[FabricImage, BaseInfo[] | undefined]> {
+    const index = this._progressIndex >= this._maxFrameCount ? this._maxFrameCount - 1 : this._progressIndex;
+    const [imageInfo, dataInfos] = await Promise.all([this.fetchImage(index), this.fetchDataInfos(index)]);
+    return [imageInfo, dataInfos];
   }
 
   /**
